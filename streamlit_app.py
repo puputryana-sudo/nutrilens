@@ -13,9 +13,12 @@ def get_model(project_id, api_key):
     """
     try:
         rf = roboflow.Roboflow(api_key=api_key)
-        project_name, project_version = project_id.split('/')
-        project = rf.workspace().project(project_name)
-        model = project.version(project_version).model
+        
+        # Menggunakan project ID dan versi secara langsung
+        project = rf.workspace().project("nutrilens-qutk4")
+        version = project.version(7)
+        model = version.model
+        
         return model
     except Exception as e:
         st.error(f"Gagal memuat model dari Roboflow. Pastikan API key dan project ID benar. Error: {e}")
