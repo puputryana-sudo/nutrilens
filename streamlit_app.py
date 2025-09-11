@@ -27,12 +27,16 @@ def get_model(api_key):
 # Judul aplikasi
 st.title("Deteksi Nutrisi pada Sajian Piring")
 
-# Upload gambar dari user
+# Dua opsi input: file uploader dan kamera
 uploaded_file = st.file_uploader("Pilih gambar sajian", type=["jpg", "jpeg", "png"])
+camera_image = st.camera_input("Ambil gambar dengan kamera")
 
-if uploaded_file is not None:
+# Mengambil file yang diunggah atau diambil dari kamera
+input_image = uploaded_file if uploaded_file else camera_image
+
+if input_image is not None:
     # baca gambar dengan PIL
-    pil_img = Image.open(uploaded_file).convert("RGB")
+    pil_img = Image.open(input_image).convert("RGB")
     
     # tampilkan gambar asli
     st.image(pil_img, caption="Gambar asli", use_column_width=True)
