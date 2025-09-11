@@ -49,7 +49,7 @@ if uploaded_file is not None:
             result = model.predict(image_array, confidence=40, overlap=30).json()
 
             # konversi hasil ke format detections supervision
-            detections = sv.Detections.from_roboflow(result)
+            detections = sv.Detections.from_inference(result)
 
             # anotasi hasil deteksi
             box_annotator = sv.BoxAnnotator()
