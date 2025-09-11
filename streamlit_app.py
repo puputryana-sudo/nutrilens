@@ -17,7 +17,7 @@ def get_model(api_key):
         # Menggunakan project ID dan versi secara langsung
         project = rf.workspace("putriana-dwi-agustin-ayet0").project("nutrilens-qutk4")
         version = project.version(7)
-        model = version.version_model
+        model = version.version.model
         
         return model
     except Exception as e:
