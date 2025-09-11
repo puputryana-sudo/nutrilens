@@ -17,7 +17,7 @@ def get_model(api_key):
         # Menggunakan project ID dan versi secara langsung
         project = rf.workspace("putriana-dwi-agustin-ayet0").project("nutrilens-qutk4")
         version = project.version(7)
-        model = version.model
+        model = version.version_model
         
         return model
     except Exception as e:
@@ -42,8 +42,11 @@ if uploaded_file is not None:
 
     if model is not None:
         try:
-            # infer pakai PIL image
-            result = model.predict(pil_img).json()
+            # konversi PIL Image ke array NumPy
+            image_array = np.array(pil_img)
+            
+            # infer pakai NumPy array
+            result = model.predict(image_array, confidence=40, overlap=30).json()
 
             # konversi hasil ke format detections supervision
             detections = sv.Detections.from_roboflow(result)
@@ -52,9 +55,8 @@ if uploaded_file is not None:
             box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
 
-            # konversi PIL ke array (OpenCV format)
-            img_np = np.array(pil_img)
-            img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+            # konversi array RGB ke BGR untuk OpenCV
+            img_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
 
             annotated = box_annotator.annotate(scene=img_bgr, detections=detections)
             annotated = label_annotator.annotate(scene=annotated, detections=detections)
