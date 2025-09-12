@@ -5,4 +5,5 @@ supervision
 roboflow
 numpy
 ultralytics
+openpyxl
 
