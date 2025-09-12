@@ -39,7 +39,7 @@ if input_image is not None:
     pil_img = Image.open(input_image).convert("RGB")
     
     # tampilkan gambar asli
-    st.image(pil_img, caption="Gambar asli", use_column_width=True)
+    st.image(pil_img, caption="Gambar asli", use_container_width=True)
 
     # load model roboflow
     model = get_model(api_key="RoWNb7wk6nYlQZYojZVY")
@@ -70,7 +70,6 @@ if input_image is not None:
             st.image(annotated_rgb, caption="Hasil Deteksi", use_column_width=True)
 
             # cetak output hasil deteksi
-            st.write("Hasil prediksi (class & confidence):")
             st.json(result['predictions'])
         except Exception as e:
             st.error(f"Terjadi kesalahan saat inferensi atau anotasi. Error: {e}")
