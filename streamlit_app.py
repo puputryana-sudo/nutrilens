@@ -4,6 +4,32 @@ from PIL import Image
 import supervision as sv
 import numpy as np
 import roboflow
+import pandas as pd
+import os
+
+# path relatif supaya aman saat deploy
+BASE_DIR = os.path.dirname(__file__)
+rules_path = os.path.join(BASE_DIR, "rule_diabetes_python.xlsx")
+rules_df = pd.read_excel(rules_path)
+
+# untuk sistem rekomendasi
+def generate_recommendations(detections):
+    recs = []
+    counts = pd.Series(detections).value_counts()
+
+    for cls, count in counts.items():
+        rule = rules_df[rules_df['class'] == cls]
+        if not rule.empty:
+            max_allowed = int(rule['max_allowed'].values[0])
+            if count < max_allowed:
+                recommendation = rule['less_than'].values[0]
+            elif count == max_allowed:
+                recommendation = rule['equal'].values[0]
+            else:
+                recommendation = rule['greater_than'].values[0]
+            recs.append(f"{cls}: {recommendation}")
+    return recs
+
 
 # Fungsi get_model yang sudah diperbaiki untuk API Roboflow
 @st.cache_resource
@@ -68,6 +94,18 @@ if input_image is not None:
             # convert hasil anotasi ke RGB
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             st.image(annotated_rgb, caption="Hasil Deteksi", use_container_width=True)
+
+            # konversi hasil ke list nama kelas
+            detected_classes = [pred["class"] for pred in result["predictions"]]
+
+            # generate rekomendasi
+            recommendations = generate_recommendations(detected_classes)
+
+            # tampilkan rekomendasi di Streamlit
+            st.markdown("### Rekomendasi Gizi:")
+            for rec in recommendations:
+            st.write(f"- {rec}")
+
            
         except Exception as e:
             st.error(f"Terjadi kesalahan saat inferensi atau anotasi. Error: {e}")
