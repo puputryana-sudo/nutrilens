@@ -50,7 +50,7 @@ if input_image is not None:
             image_array = np.array(pil_img)
             
             # infer pakai NumPy array
-            result = model.predict(image_array, confidence=20, overlap=70).json()
+            result = model.predict(image_array, confidence=20, overlap=90).json()
 
             # konversi hasil ke format detections supervision
             detections = sv.Detections.from_inference(result)
