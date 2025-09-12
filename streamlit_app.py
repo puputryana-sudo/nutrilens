@@ -67,9 +67,7 @@ if input_image is not None:
 
             # convert hasil anotasi ke RGB
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-            st.image(annotated_rgb, caption="Hasil Deteksi", use_column_width=True)
-
-            # cetak output hasil deteksi
-            st.json(result['predictions'])
+            st.image(annotated_rgb, caption="Hasil Deteksi", use_container_width=True)
+           
         except Exception as e:
             st.error(f"Terjadi kesalahan saat inferensi atau anotasi. Error: {e}")
