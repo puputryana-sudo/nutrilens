@@ -104,7 +104,7 @@ if input_image is not None:
             # tampilkan rekomendasi di Streamlit
             st.markdown("### Rekomendasi Gizi:")
             for rec in recommendations:
-            st.write(f"- {rec}")
+                st.write(f"- {rec}")
 
            
         except Exception as e:
