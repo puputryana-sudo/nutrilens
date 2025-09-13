@@ -4,32 +4,7 @@ from PIL import Image
 import supervision as sv
 import numpy as np
 import roboflow
-import pandas as pd
-import os
-
-# path relatif supaya aman saat deploy
-BASE_DIR = os.path.dirname(__file__)
-rules_path = os.path.join(BASE_DIR, "rule_diabetes_python.xlsx")
-rules_df = pd.read_excel(rules_path)
-
-# untuk sistem rekomendasi
-def generate_recommendations(detections):
-    recs = []
-    counts = pd.Series(detections).value_counts()
-
-    for cls, count in counts.items():
-        rule = rules_df[rules_df['class'] == cls]
-        if not rule.empty:
-            max_allowed = int(rule['max_allowed'].values[0])
-            if count < max_allowed:
-                recommendation = rule['less_than'].values[0]
-            elif count == max_allowed:
-                recommendation = rule['equal'].values[0]
-            else:
-                recommendation = rule['greater_than'].values[0]
-            recs.append(f"{cls}: {recommendation}")
-    return recs
-
+from collections import Counter
 
 # Fungsi get_model yang sudah diperbaiki untuk API Roboflow
 @st.cache_resource
@@ -39,73 +14,116 @@ def get_model(api_key):
     """
     try:
         rf = roboflow.Roboflow(api_key=api_key)
-        
-        # Menggunakan project ID dan versi secara langsung
         project = rf.workspace("putriana-dwi-agustin-ayet0").project("nutrilens-qutk4")
         version = project.version(7)
         model = version.model
-        
         return model
     except Exception as e:
         st.error(f"Gagal memuat model dari Roboflow. Pastikan API key dan project ID benar. Error: {e}")
         return None
 
+
+# aturan untuk rekomendasi
+rules = {
+    "Karbohidrat": {
+        "max_servings": 3,
+        "max_energy_kcal": 450,
+        "max_carbs_g": 90
+    },
+    "Protein hewani": {
+        "max_servings": 2,
+        "max_energy_kcal": 400,
+        "max_protein_g": 45
+    },
+    "Protein nabati": {
+        "max_servings": 3,
+        "max_energy_kcal": 360,
+        "max_protein_g": 30
+    },
+    "Sayur": {
+        "recommendation": "Lebih banyak lebih baik"
+    },
+    "Pelengkap": {
+        "max_servings": 2,
+        "max_energy_kcal": 200,
+        "max_carbs_g": 40
+    }
+}
+
+
+# sistem rekomendasi
+def check_recommendation(detected_classes):
+    counts = Counter(detected_classes)
+    messages = []
+
+    for food_class, count in counts.items():
+        if food_class in rules:
+            rule = rules[food_class]
+
+            # cek batas sajian
+            if "max_servings" in rule and count > rule["max_servings"]:
+                messages.append(
+                    f"⚠️ {food_class}: {count} sajian (melebihi batas {rule['max_servings']})."
+                )
+            else:
+                messages.append(
+                    f"✅ {food_class}: {count} sajian masih aman."
+                )
+
+            # info gizi batas aman
+            if "max_energy_kcal" in rule:
+                messages.append(f"   ➡️ Energi ≤ {rule['max_energy_kcal']} kcal")
+            if "max_carbs_g" in rule:
+                messages.append(f"   ➡️ Karbohidrat ≤ {rule['max_carbs_g']} g")
+            if "max_protein_g" in rule:
+                messages.append(f"   ➡️ Protein ≤ {rule['max_protein_g']} g")
+        else:
+            messages.append(f"ℹ️ {food_class}: belum ada aturan spesifik.")
+
+    return "\n".join(messages)
+
+
 # Judul aplikasi
 st.title("Deteksi Nutrisi pada Sajian Piring")
 
-# Dua opsi input: file uploader dan kamera
+# Dua opsi input
 uploaded_file = st.file_uploader("Pilih gambar sajian", type=["jpg", "jpeg", "png"])
 camera_image = st.camera_input("Ambil gambar dengan kamera")
 
-# Mengambil file yang diunggah atau diambil dari kamera
 input_image = uploaded_file if uploaded_file else camera_image
 
 if input_image is not None:
-    # baca gambar dengan PIL
     pil_img = Image.open(input_image).convert("RGB")
-    
-    # tampilkan gambar asli
     st.image(pil_img, caption="Gambar asli", use_container_width=True)
 
-    # load model roboflow
     model = get_model(api_key="RoWNb7wk6nYlQZYojZVY")
 
     if model is not None:
         try:
-            # konversi PIL Image ke array NumPy
             image_array = np.array(pil_img)
-            
-            # infer pakai NumPy array
             result = model.predict(image_array, confidence=15, overlap=50).json()
 
-            # konversi hasil ke format detections supervision
             detections = sv.Detections.from_inference(result)
 
             # anotasi hasil deteksi
             box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
-
-            # konversi array RGB ke BGR untuk OpenCV
             img_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
 
             annotated = box_annotator.annotate(scene=img_bgr, detections=detections)
             annotated = label_annotator.annotate(scene=annotated, detections=detections)
 
-            # convert hasil anotasi ke RGB
             annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             st.image(annotated_rgb, caption="Hasil Deteksi", use_container_width=True)
 
-            # konversi hasil ke list nama kelas
+            # ambil list kelas
             detected_classes = [pred["class"] for pred in result["predictions"]]
 
-            # generate rekomendasi
-            recommendations = generate_recommendations(detected_classes)
+            if detected_classes:
+                st.subheader("Rekomendasi Konsumsi")
+                st.text(check_recommendation(detected_classes))
+            else:
+                st.info("Tidak ada makanan terdeteksi.")
 
-            # tampilkan rekomendasi di Streamlit
-            st.markdown("### Rekomendasi Gizi:")
-            for rec in recommendations:
-                st.write(f"- {rec}")
-
-           
         except Exception as e:
             st.error(f"Terjadi kesalahan saat inferensi atau anotasi. Error: {e}")
