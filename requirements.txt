@@ -1,10 +1,8 @@
 streamlit
 opencv-python
-Pillow
+pillow
 supervision
 roboflow
 numpy
 ultralytics
-JSON
-Counter
-
+pandas
