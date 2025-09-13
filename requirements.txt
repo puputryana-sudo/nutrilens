@@ -5,5 +5,6 @@ supervision
 roboflow
 numpy
 ultralytics
-openpyxl
+JSON
+Counter
 
